@@ -1,0 +1,20 @@
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 虚拟环境
+venv/
+.venv/
+.uv/
+
+# 程序运行生成的图片(测试输出)
+*_resized.*
+*_cropped.*
+*_rotated_*
+*_flipped_*
+*_gray.*
+*_converted.*
+
+# 系统文件
+.DS_Store
+Thumbs.db
