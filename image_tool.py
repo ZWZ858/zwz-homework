@@ -85,7 +85,7 @@ def unique_path(path):
 
 
 def save_image(img, out_path):
-    """保存图片。返回 (实际保存路径, error)。"""
+    """保存图片并处理透明通道。返回 (实际保存路径, error)。"""
     ext = os.path.splitext(out_path)[1].lower()
     if not ext:
         return None, "输出路径缺少扩展名,无法判断保存格式"
@@ -160,6 +160,74 @@ def do_crop(img, in_path, left, top, right, bottom, out_path):
     return saved, msg
 
 
+def do_rotate(img, in_path, angle, out_path):
+    """旋转:支持 90 / 180 / 270 度。"""
+    if angle == 90:
+        rotated = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+    elif angle == 180:
+        rotated = cv2.rotate(img, cv2.ROTATE_180)
+    else:
+        rotated = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+
+    if out_path is None:
+        out_path = make_output(in_path, "rotated_{}".format(angle))
+    saved, err = save_image(rotated, out_path)
+    if err:
+        return None, err
+    return saved, "旋转完成: {} 度".format(angle)
+
+
+def do_flip(img, in_path, direction, out_path):
+    """翻转:horizontal 水平翻转,vertical 垂直翻转。"""
+    code = 1 if direction == "horizontal" else 0
+    flipped = cv2.flip(img, code)
+
+    if out_path is None:
+        out_path = make_output(in_path, "flipped_{}".format(direction))
+    saved, err = save_image(flipped, out_path)
+    if err:
+        return None, err
+    name = "水平" if direction == "horizontal" else "垂直"
+    return saved, "翻转完成: {}翻转".format(name)
+
+
+def to_grayscale(img):
+    """把彩色图转灰度图(兼容 3 通道和 4 通道)。"""
+    if img.ndim == 2:
+        return img
+    if img.shape[2] == 4:
+        return cv2.cvtColor(img, cv2.COLOR_BGRA2GRAY)
+    return cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+
+def do_grayscale(img, in_path, out_path):
+    """灰度化。"""
+    gray = to_grayscale(img)
+    if out_path is None:
+        out_path = make_output(in_path, "gray")
+    saved, err = save_image(gray, out_path)
+    if err:
+        return None, err
+    return saved, "灰度化完成"
+
+
+def do_convert(img, in_path, fmt, out_path):
+    """格式转换。目标扩展名由 --format 决定。"""
+    fmt = fmt.lower().lstrip(".")
+    ext_map = {"jpg": ".jpg", "jpeg": ".jpg", "png": ".png", "bmp": ".bmp",
+               "webp": ".webp", "tif": ".tiff", "tiff": ".tiff"}
+    if fmt not in ext_map:
+        return None, "不支持的格式: {} (支持 jpg/png/bmp/webp/tiff)".format(fmt)
+    ext = ext_map[fmt]
+
+    if out_path is None:
+        out_path = make_output(in_path, "converted", new_ext=ext)
+    saved, err = save_image(img, out_path)
+    if err:
+        return None, err
+    return saved, "格式转换完成: -> {}".format(os.path.splitext(saved)[1].upper())
+
+
 def print_info(path):
     """打印图片基础信息。"""
     img, err = load_image(path)
@@ -204,6 +272,28 @@ def build_parser():
     p_crop.add_argument("--bottom", type=int, required=True, help="下边界 y 坐标")
     p_crop.add_argument("--output", help="输出文件路径(可选)")
 
+    p_rotate = sub.add_parser("rotate", help="旋转图片")
+    p_rotate.add_argument("image", help="图片路径")
+    p_rotate.add_argument("--angle", type=int, required=True, choices=[90, 180, 270],
+                          help="旋转角度(90/180/270)")
+    p_rotate.add_argument("--output", help="输出文件路径(可选)")
+
+    p_flip = sub.add_parser("flip", help="翻转图片")
+    p_flip.add_argument("image", help="图片路径")
+    p_flip.add_argument("--direction", required=True, choices=["horizontal", "vertical"],
+                        help="翻转方向:horizontal(水平)/vertical(垂直)")
+    p_flip.add_argument("--output", help="输出文件路径(可选)")
+
+    p_gray = sub.add_parser("grayscale", help="灰度化")
+    p_gray.add_argument("image", help="图片路径")
+    p_gray.add_argument("--output", help="输出文件路径(可选)")
+
+    p_convert = sub.add_parser("convert", help="格式转换")
+    p_convert.add_argument("image", help="图片路径")
+    p_convert.add_argument("--format", required=True,
+                           help="目标格式:png / jpg / bmp / webp / tiff")
+    p_convert.add_argument("--output", help="输出文件路径(可选)")
+
     return parser
 
 
@@ -231,6 +321,14 @@ def main(argv=None):
     elif args.command == "crop":
         out, msg = do_crop(img, args.image, args.left, args.top,
                            args.right, args.bottom, out_path)
+    elif args.command == "rotate":
+        out, msg = do_rotate(img, args.image, args.angle, out_path)
+    elif args.command == "flip":
+        out, msg = do_flip(img, args.image, args.direction, out_path)
+    elif args.command == "grayscale":
+        out, msg = do_grayscale(img, args.image, out_path)
+    elif args.command == "convert":
+        out, msg = do_convert(img, args.image, args.format, out_path)
     else:
         build_parser().print_help()
         return 1
