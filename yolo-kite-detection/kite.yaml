@@ -1,9 +1,0 @@
-# YOLOv5 数据集配置 —— 风筝 (kite) 单类目标检测
-# 用法: python train.py --data E:/dsh_yolo_hw/kite.yaml --weights yolov5s.pt --img 640 --batch 16 --epochs 150 --device 0
-
-path: E:/dsh_yolo_hw/dataset   # 数据集根目录（使用正斜杠）
-train: images/train            # 训练图目录（相对 path）
-val: images/val                # 验证图目录（相对 path）
-
-nc: 1                          # 类别数
-names: ['kite']                # 类别名，顺序即 class_id
