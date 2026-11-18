@@ -1,0 +1,6 @@
+# YOLOv5 风筝检测 — 脚本依赖
+opencv-python>=4.8
+numpy>=1.24
+Pillow>=10.0
+PyYAML>=6.0
+# 训练/推理还依赖 ultralytics/yolov5 官方仓库的 requirements.txt（torch、torchvision 等）
